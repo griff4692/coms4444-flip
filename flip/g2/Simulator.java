@@ -22,12 +22,13 @@ public class Simulator {
     private static final String ROOT = "flip";
     private static final Integer n_pieces = 30;
     private static final Integer seed = 42;
-    private static final Integer iterations = 500;
-    private static final Integer experiments = 1;
+    private static final Integer numFeatures = 8;
+    private static final Integer iterations = 10;
+    private static final Integer experiments = 2;
     private static final Integer turns = 1000;
     private static final double maxUpdate = 0.01;
     private static final double delta = 0.01;
-    private static final double learningRate = 0.1;
+    private static final double learningRate = 0.01;
     private static final long TIMEOUT = 1000;
     private static Random random;
 
@@ -36,52 +37,57 @@ public class Simulator {
         List<String> opponents = Arrays.asList(o);
         random = new Random();
 
-        ArrayList<Integer> featureIdxs = new ArrayList<Integer>();
-        for(int j = 0; j < 8; j++) {
-            featureIdxs.add(j);
-        }
-
         PlayerParameters params = PlayerParameters.generateRandomParameters();
         Log.log("Initial parameters\\n");
         System.out.println("Initial Params");
         System.out.println(params);
         Log.log(params.toString());
         for (int i = 0; i < iterations; i++) {
-            Collections.shuffle(featureIdxs);
-            for(int randFeature : featureIdxs) {
-                Board board = new Board(n_pieces, random.nextInt(100));
-                HashMap<Integer, Point> player1Pieces = board.player1;
-                HashMap<Integer, Point> player2Pieces = board.player2;
+            ArrayList<Double> gradients = new ArrayList<Double>();
 
-                Log.log("randomizing feature " + randFeature + "\\n");
+            Board board = new Board(n_pieces, random.nextInt(100));
+            double initGreedyProb = 0.3;
+            double endGreedyProb = 0.7;
+            double greedyProb = (initGreedyProb * (iterations.doubleValue() - i) / iterations.doubleValue())
+                    + (endGreedyProb * (i / iterations.doubleValue()));
+
+            System.out.println("Greedy Prob: " + greedyProb);
+
+            HashMap<Integer, Point> player1Pieces = board.player1;
+            HashMap<Integer, Point> player2Pieces = board.player2;
+            board.player1 = deepClone(player1Pieces);
+            board.player2 = deepClone(player2Pieces);
+            double avgZero = runExperiment(board, opponents, params, greedyProb);
+            System.out.println("Average victory: " + avgZero);
+            for(int featureIdx = 0; featureIdx < numFeatures; featureIdx++) {
                 //-delta
-                params.setFeature(randFeature, params.getFeature(randFeature) - delta);
+                params.setFeature(featureIdx, params.getFeature(featureIdx) - delta);
                 board.player1 = deepClone(player1Pieces);
                 board.player2 = deepClone(player2Pieces);
-                double avgMinus = runExperiment(board, opponents, params);
-                //zero
-                params.setFeature(randFeature, params.getFeature(randFeature) + delta);
-                board.player1 = deepClone(player1Pieces);
-                board.player2 = deepClone(player2Pieces);
-                double avgZero = runExperiment(board, opponents, params);
+                double avgMinus = runExperiment(board, opponents, params, greedyProb);
+
                 //+delta
-                params.setFeature(randFeature, params.getFeature(randFeature) + delta);
+                params.setFeature(featureIdx, params.getFeature(featureIdx) + 2 * delta);
                 board.player1 = deepClone(player1Pieces);
                 board.player2 = deepClone(player2Pieces);
-                double avgPlus = runExperiment(board, opponents, params);
+                double avgPlus = runExperiment(board, opponents, params, greedyProb);
 
                 //restore to zero change
-                params.setFeature(randFeature, params.getFeature(randFeature) - delta);
+                params.setFeature(featureIdx, params.getFeature(featureIdx) - delta);
                 double lowerSlope = (avgZero - avgMinus) / delta;
                 double upperSlope = (avgPlus - avgZero) / delta;
 
                 if(Math.signum(lowerSlope) == Math.signum(upperSlope)) {
                     double slope = (0.5 * (avgZero - avgMinus) / delta) + (0.5 * (avgPlus - avgZero) / delta);
-                    double weightUpdate = Math.max(Math.min(slope * learningRate, maxUpdate), -maxUpdate);
-                    //update feature value
-                    params.setFeature(randFeature, params.getFeature(randFeature) + weightUpdate);
+                    gradients.add(slope);
+                } else {
+                    gradients.add(0.0);
                 }
-                System.out.println("Average victory: " + avgZero);
+            }
+
+            for(int featureIdx = 0; featureIdx < numFeatures; featureIdx++) {
+                double weightUpdate = Math.max(Math.min(gradients.get(featureIdx) * learningRate, maxUpdate), -maxUpdate);
+                params.setFeature(featureIdx, params.getFeature(featureIdx) + weightUpdate);
             }
         }
         Log.log("\\nFinal parameters\\n" + params);
@@ -91,7 +97,7 @@ public class Simulator {
     }
 
 
-    private static double runExperiment(Board board, List<String> opponents, PlayerParameters params) {
+    private static double runExperiment(Board board, List<String> opponents, PlayerParameters params, double greedyProb) {
         double averageDelta = 0.0;
         for (int i = 0; i < experiments; i++) {
             PlayerWrapper player1 = null;
@@ -102,6 +108,7 @@ public class Simulator {
                     player1 = loadPlayerWrapper("g2", "g2");
                     player2 = loadPlayerWrapper(cleanName(opponent), opponent);
 
+                    ((flip.g2.Player) player1.getPlayer()).setGreedyProb(greedyProb);
                     ((flip.g2.Player) player1.getPlayer()).setParams(params);
                     List<Integer> scores = runGame(board, player1, player2);
                     averageDelta += scores.get(0) - scores.get(1);

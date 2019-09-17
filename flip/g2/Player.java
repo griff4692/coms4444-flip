@@ -16,6 +16,7 @@ public class Player implements flip.sim.Player {
 
     private int seed = 42;
     private boolean isPlayer1;
+    private double greedyProb;
     private Integer n;
     private Double pieceDiameter;
     private PlayerParameters params;
@@ -53,10 +54,15 @@ public class Player implements flip.sim.Player {
         this.n = n;
         this.isPlayer1 = isPlayer1;
         this.pieceDiameter = pieceDiameter;
+        this.greedyProb = 0.25;
     }
 
-    public Integer sample(List<Double> pdf, double epsilon) {
-        if (Math.random() < epsilon) {
+    public void setGreedyProb(double newProb) {
+        this.greedyProb = newProb;
+    }
+
+    public Integer sample(List<Double> pdf) {
+        if (Math.random() < this.greedyProb) {
             int greatestIdx = 0;
             double greatestProb = 0.;
             for (int i = 0; i < pdf.size(); i++) {
@@ -171,14 +177,14 @@ public class Player implements flip.sim.Player {
         List<Double> maxValencesSoftmax = this.softmax(maxValences);
 
         for (int i = 0; i < numMoves; i++) {
-            int sampledId = this.sample(maxValencesSoftmax, 0.5);
+            int sampledId = this.sample(maxValencesSoftmax);
 
             Double offensiveScore = offenseValences.get(sampledId);
             Double defensiveScore = defenseValences.get(sampledId);
             List<Double> strategyScores = new ArrayList();
             strategyScores.add(offensiveScore);
             strategyScores.add(defensiveScore);
-            int sampledStrategy = this.sample(strategyScores, 0.5);
+            int sampledStrategy = this.sample(strategyScores);
 
             double theta = 0.0; // offensive strategy is to go straight ahead if possible
             if (sampledStrategy == 1) {
