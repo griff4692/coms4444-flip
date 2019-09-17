@@ -22,11 +22,11 @@ public class Simulator {
     private static final String ROOT = "flip";
     private static final Integer n_pieces = 30;
     private static final Integer seed = 42;
-    private static final Integer iterations = 1000;
-    private static final Integer experiments = 10;
+    private static final Integer iterations = 500;
+    private static final Integer experiments = 1;
     private static final Integer turns = 1000;
-    private static final double maxUpdate = 0.1;
-    private static final double delta = 0.1;
+    private static final double maxUpdate = 0.01;
+    private static final double delta = 0.01;
     private static final double learningRate = 0.1;
     private static final long TIMEOUT = 1000;
     private static Random random;
