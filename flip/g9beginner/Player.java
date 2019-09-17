@@ -31,7 +31,7 @@ public class Player implements flip.sim.Player
     // t: Total turns available.
 	public void init(HashMap<Integer, Point> pieces, int n, double t, boolean isplayer1, double diameter_piece)
 	{
-		System.out.println("N = " + n);
+//		System.out.println("N = " + n);
 		this.n = n;
 		this.isplayer1 = isplayer1;
 		this.diameter_piece = diameter_piece;
@@ -53,7 +53,7 @@ public class Player implements flip.sim.Player
 			// Want delta x > 0
 			Pair<Integer, Point> move = new Pair<Integer, Point>(i, new_position);
 			if(check_validity(move, player_pieces, opponent_pieces)) {
-				System.out.println("IDEAL");
+//				System.out.println("IDEAL");
 				possible_moves.add(move);
 				continue;
 			}
@@ -70,7 +70,7 @@ public class Player implements flip.sim.Player
 				new_position.y += delta_y1;
 				move = new Pair<Integer, Point>(i, new_position);
 				if(check_validity(move,	player_pieces, opponent_pieces)) {
-					System.out.println("VALID");
+//					System.out.println("VALID");
 					break;
 				}
 				//check same move reflected over x axis
@@ -82,7 +82,7 @@ public class Player implements flip.sim.Player
 				new_position.y += delta_y2;
 				move = new Pair<Integer, Point>(i, new_position);
 				if(check_validity(move,	player_pieces, opponent_pieces)) {
-					System.out.println("VALID");
+//					System.out.println("VALID");
 					break;
 				}
 				theta += .1;
@@ -93,7 +93,7 @@ public class Player implements flip.sim.Player
 			}
 		 }
 
-		System.out.println("POSSIBLE MOVES: " + possible_moves.size());
+//		System.out.println("POSSIBLE MOVES: " + possible_moves.size());
 		return pick_moves(num_moves, possible_moves, isplayer1);
 	}
 

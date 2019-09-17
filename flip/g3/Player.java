@@ -56,9 +56,9 @@ public class Player implements flip.sim.Player
 
 			}
 		}
-		System.out.println("defense offense sizes");
-		System.out.println(this.defensePieces.size());
-		System.out.println(this.offensePieces.size());
+//		System.out.println("defense offense sizes");
+//		System.out.println(this.defensePieces.size());
+//		System.out.println(this.offensePieces.size());
 	}
 
 	public List<Pair<Integer, Point>> getMoves(Integer num_moves, HashMap<Integer, Point> player_pieces, HashMap<Integer, Point> opponent_pieces, boolean isplayer1)
@@ -109,12 +109,12 @@ public class Player implements flip.sim.Player
 
 		 	if(check_validity(move, player_pieces, opponent_pieces)){
 		 		moves.add(move);
-		 		System.out.print("offense size ");
-		 		System.out.println(offensePieces.size());
+//		 		System.out.print("offense size ");
+//		 		System.out.println(offensePieces.size());
 		 		if((isplayer1 && new_position.x < -25) || (!isplayer1 && new_position.x > 25)){
 		 			offensePieces.remove(piece_idx);
-		 			System.out.print("piece_idx ");
-		 			System.out.println(piece_idx);
+//		 			System.out.print("piece_idx ");
+//		 			System.out.println(piece_idx);
 		 			int d_piece_idx = random.nextInt(defensePieces.size());
 					Integer d_piece_id = defensePieces.get(d_piece_idx);
 					offensePieces.add(d_piece_id);

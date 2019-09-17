@@ -20,19 +20,20 @@ import java.io.*;
 public class Simulator {
 
     private static final String ROOT = "flip";
-    private static final Integer n_pieces = 10;
+    private static final Integer n_pieces = 30;
     private static final Integer seed = 42;
     private static final Integer iterations = 1000;
-    private static final Integer experiments = 30;
-    private static final Integer turns = 500;
-    private static final double maxUpdate = 0.05;
+    private static final Integer experiments = 10;
+    private static final Integer turns = 1000;
+    private static final double maxUpdate = 0.1;
     private static final double delta = 0.1;
     private static final double learningRate = 0.1;
     private static final long TIMEOUT = 1000;
     private static Random random;
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
-        List<String> opponents = Arrays.asList("random");
+        String o[] = new String[] { "g1", "g3", "g4", "g6", "g7", "g8", "g9beginner", "g9greedy"};
+        List<String> opponents = Arrays.asList(o);
         random = new Random();
 
         ArrayList<Integer> featureIdxs = new ArrayList<Integer>();
@@ -48,7 +49,6 @@ public class Simulator {
         for (int i = 0; i < iterations; i++) {
             Collections.shuffle(featureIdxs);
             for(int randFeature : featureIdxs) {
-                String opponent = opponents.get(random.nextInt(opponents.size()));
                 Board board = new Board(n_pieces, random.nextInt(100));
                 HashMap<Integer, Point> player1Pieces = board.player1;
                 HashMap<Integer, Point> player2Pieces = board.player2;
@@ -58,17 +58,17 @@ public class Simulator {
                 params.setFeature(randFeature, params.getFeature(randFeature) - delta);
                 board.player1 = deepClone(player1Pieces);
                 board.player2 = deepClone(player2Pieces);
-                double avgMinus = runExperiment(board, opponent, params);
+                double avgMinus = runExperiment(board, opponents, params);
                 //zero
                 params.setFeature(randFeature, params.getFeature(randFeature) + delta);
                 board.player1 = deepClone(player1Pieces);
                 board.player2 = deepClone(player2Pieces);
-                double avgZero = runExperiment(board, opponent, params);
+                double avgZero = runExperiment(board, opponents, params);
                 //+delta
                 params.setFeature(randFeature, params.getFeature(randFeature) + delta);
                 board.player1 = deepClone(player1Pieces);
                 board.player2 = deepClone(player2Pieces);
-                double avgPlus = runExperiment(board, opponent, params);
+                double avgPlus = runExperiment(board, opponents, params);
 
                 //restore to zero change
                 params.setFeature(randFeature, params.getFeature(randFeature) - delta);
@@ -91,30 +91,32 @@ public class Simulator {
     }
 
 
-    private static double runExperiment(Board board, String opponent, PlayerParameters params) {
+    private static double runExperiment(Board board, List<String> opponents, PlayerParameters params) {
         double averageDelta = 0.0;
         for (int i = 0; i < experiments; i++) {
             PlayerWrapper player1 = null;
             PlayerWrapper player2 = null;
 
-            try {
-                player1 = loadPlayerWrapper("g2", "g2");
-                player2 = loadPlayerWrapper(cleanName(opponent), opponent);
-                
-                ((flip.g2.Player) player1.getPlayer()).setParams(params);
-                List<Integer> scores = runGame(board, player1, player2);
-                averageDelta += scores.get(0) - scores.get(1);
-            } catch (Exception ex) {
-                Log.log("Unable to load players. " + ex.getMessage());
-                System.out.println("Unable to load players. " + ex.getMessage());
-                break;
-            } finally {
-                if (player1 != null) player1.destroy();
-                if (player2 != null) player2.destroy();
+            for (String opponent : opponents) {
+                try {
+                    player1 = loadPlayerWrapper("g2", "g2");
+                    player2 = loadPlayerWrapper(cleanName(opponent), opponent);
+
+                    ((flip.g2.Player) player1.getPlayer()).setParams(params);
+                    List<Integer> scores = runGame(board, player1, player2);
+                    averageDelta += scores.get(0) - scores.get(1);
+                } catch (Exception ex) {
+                    Log.log("Unable to load players. " + ex.getMessage());
+                    System.out.println("Unable to load players. " + ex.getMessage());
+                    break;
+                } finally {
+                    if (player1 != null) player1.destroy();
+                    if (player2 != null) player2.destroy();
+                }
             }
         }
         System.gc();
-        return averageDelta / (experiments * n_pieces);
+        return averageDelta / (experiments * n_pieces * opponents.size());
     }
 
     private static List<Integer> runGame(Board game, PlayerWrapper player1, PlayerWrapper player2) {
