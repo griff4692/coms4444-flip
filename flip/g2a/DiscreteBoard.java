@@ -1,6 +1,11 @@
 package flip.g2a;
 
 import flip.sim.Point;
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Collection;
 
 /**
@@ -29,9 +34,120 @@ public class DiscreteBoard {
         }
     }
 
+    public boolean isFree(Pair<Integer, Integer> target, boolean[][] visited) {
+        int yCoord = target.getKey();
+        int xCoord = target.getValue();
+        boolean inBounds = xCoord >= 0 && xCoord < visited[0].length && yCoord >= 0 && yCoord < visited.length;
+
+        if(! inBounds) {
+            return false;
+        }
+
+        boolean notVisited = ! visited[yCoord][xCoord];
+        boolean isFree = this.board[yCoord][xCoord] == null || this.board[yCoord][xCoord] > -1;
+        return inBounds && notVisited && isFree;
+    }
+
+    public ArrayList<Point> findClosestPiece(Pair<Integer, Integer>target) {
+        Queue<Pair> q = new LinkedList<>();
+        q.add(target);
+        String[][] directions = new String[height / gridResolution][width / gridResolution];
+        boolean[][] visited = new boolean[height / gridResolution][width / gridResolution];
+        for (boolean[] visited1 : visited) {
+            for (int j = 0; j < visited1.length; j++) {
+                visited1[j] = false;
+            }
+        }
+        for (String[] directions1 : directions) {
+            for (int j = 0; j < directions1.length; j++) {
+                directions1[j] = "";
+            }
+        }
+        visited[target.getKey()][target.getValue()] = true;
+
+        ArrayList<Point>finalPath = new ArrayList<Point>();
+
+        while(! q.isEmpty()) {
+            Pair<Integer, Integer> p = q.remove();
+            int yCoord = p.getKey();
+            int xCoord = p.getValue();
+
+            int boardValue = this.board[yCoord][xCoord] == null ? -1 : this.board[yCoord][xCoord];
+            if(boardValue >= 0 && target != p) {
+                finalPath.add(new Point(boardValue, boardValue)); // this is just the piece idx in both k, v
+
+                int yPath = yCoord;
+                int xPath = xCoord;
+
+                while(directions[yPath][xPath].length() > 0) {
+                    String nextDirection = directions[yPath][xPath];
+                    if(nextDirection == "up") {
+                        yPath --;
+                    } else if (nextDirection == "right") {
+                        xPath++;
+                    } else if(nextDirection == "down") {
+                        yPath ++;
+                    }
+
+                    finalPath.add(this.getRealBoardCoords(new Point(yPath, xPath)));
+                }
+
+                return finalPath;
+            } else {
+                Pair<Integer, Integer> up = new Pair(yCoord - 1, xCoord);
+                if(this.isFree(up, visited)) {
+                    visited[up.getKey()][up.getValue()] = true;
+                    q.add(up);
+                    directions[up.getKey()][up.getValue()] = "down";
+                }
+
+                Pair<Integer, Integer> left = new Pair(yCoord, xCoord - 1);
+                if(this.isFree(left, visited)) {
+                    visited[left.getKey()][left.getValue()] = true;
+                    q.add(left);
+                    directions[left.getKey()][left.getValue()] = "right";
+                }
+
+                Pair<Integer, Integer> down = new Pair(yCoord + 1, xCoord);
+                if(this.isFree(down, visited)) {
+                    visited[down.getKey()][down.getValue()] = true;
+                    q.add(down);
+                    directions[down.getKey()][down.getValue()] = "up";
+                }
+            }
+        }
+
+        return finalPath;
+    }
+
+    public Point getRealBoardCoords(Point p) {
+        return new Point((double) ((p.y * gridResolution) - 20.), (double) ((p.x * gridResolution) - 60.0));
+    }
+
+    public Pair<Integer, Integer> getDiscreteBoardCoords(Point p) {
+        return new Pair((int) ((p.y + 20) / gridResolution), (int) ((p.x + 60) / gridResolution));
+    }
+
     public void recordOpponentPieces(Collection<Point> opponentPieces) {
         for (Point p : opponentPieces) {
-            board[(int) ((p.y + 20) / gridResolution)][(int) ((p.x + 60) / gridResolution)] = -1;
+            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
+            board[discreteCoords.getKey()][discreteCoords.getValue()] = -1;
+        }
+    }
+
+    public void recordPlayerPieces(Collection<Point> playerPieces) {
+        for (int i = 0; i < playerPieces.size(); i ++) {
+            Point p = (Point) playerPieces.toArray()[i];
+            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
+            board[discreteCoords.getKey()][discreteCoords.getValue()] = 1;
+        }
+    }
+
+    public void recordPlayerPiecesIdx(Collection<Point> playerPieces) {
+        for (int i = 0; i < playerPieces.size(); i ++) {
+            Point p = (Point) playerPieces.toArray()[i];
+            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
+            board[discreteCoords.getKey()][discreteCoords.getValue()] = i;
         }
     }
     
