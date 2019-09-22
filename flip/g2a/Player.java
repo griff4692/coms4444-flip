@@ -14,7 +14,10 @@ import java.util.Queue;
 
 public class Player implements flip.sim.Player {
 
+    private final static double WALL_POSITION = -19.0;
     private final static double WALL_HOLDING_PRIORITY = -1.0;
+    private final static double WALL_FORMATION_PRIORITY = 2.0;
+    private final static double RUNNER_PRIORITY = 1.0;
 
     private int seed = 42;
     private boolean isPlayer1;
@@ -83,12 +86,15 @@ public class Player implements flip.sim.Player {
 
         for (int i = 0; i < numMoves; i++) {
             final Destination d = destinations.peek();
+            if (d == null) {
+                break;
+            }
             if (wallHoldingPieces.contains(d.id)) {
                 destinations.poll();
                 i--;
                 continue;
             }
-            //System.out.println(destinations);
+            System.out.println(destinations);
             System.out.println("*** " + d);
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
@@ -115,31 +121,21 @@ public class Player implements flip.sim.Player {
         this.destinations = new PriorityQueue(n, dc);
 
         // pick a runner
-        // pick wall pieces (based on closeness to wall pieces position
-        // set target destinations and priorities
-        
         HashMap<Integer, Point> cPieces = new HashMap<>(pieces);
         Integer runner = getCloser(new Point(0, 0), cPieces);
         cPieces.remove(runner);
-        destinations.add(new Destination(1.0, runner, new Point(0,0)));
-        
-        final double wallOffset = pieceDiameter / 2 - 1;
-        for (int i = 0; i < 12; i++) {
-            //final wallPoint = new Point(-19, wallOffset);
-        }
-        
+        destinations.add(new Destination(RUNNER_PRIORITY, runner, new Point(0, 0)));
 
-        for (Entry<Integer, Point> p : pieces.entrySet()) {
-            Integer id = p.getKey();
-            Point position = p.getValue();
-            destinations.add(new Destination(Math.abs(position.x), id, new Point(21, position.y)));
+        // pick wall pieces (based on closeness to wall pieces position
+        final double wallOffset = 40.0 / 12;
+        for (int i = 0; i < 12; i++) {
+            final Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
+            final Integer closest = getCloser(wallPoint, cPieces);
+            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPoint));
+            cPieces.remove(closest);
         }
-        final Destination dRunner = destinations.poll();
-        dRunner.priority = 0.0;
-        
-        destinations.add(dRunner);
     }
-    
+
     protected Integer getCloser(Point point, HashMap<Integer, Point> pieces) {
         double bestDistance = Double.POSITIVE_INFINITY;
         Integer closerPoint = null;
@@ -157,9 +153,9 @@ public class Player implements flip.sim.Player {
         final Destination d = destinations.peek();
         final Point curPos = playerPieces.get(d.id);
         final double distance = Math.hypot(d.position.y - curPos.y, d.position.x - curPos.x);
-        //System.out.println("***distance " + distance);
+        System.out.println("***distance " + distance);
         if (distance < pieceDiameter / 2) {
-            destinations.poll();
+            System.out.println("***Removing " + destinations.poll() + " distance " + distance);
             if (d.priority == WALL_HOLDING_PRIORITY) {
                 wallHoldingPieces.add(d.id);
             }
@@ -172,19 +168,14 @@ public class Player implements flip.sim.Player {
             dBoard.recordOpponentPieces(opponentPieces.values());
             Double crowdedX = dBoard.getCrowdedColumn(-22, 22);
             if (crowdedX != null) {
-                //moves.add(this.getPositionToMove(new Pair<>(0, playerPieces.get(0)), playerPieces, opponentPieces, 0));
                 //System.out.println("***Crowded " + crowdedX);
                 final double cY = dBoard.findAHole(crowdedX);
+                final Point blockPoint = new Point(crowdedX, cY);
                 //System.out.println("***" + cY);
-                Entry<Integer, Point> min = null;
-                for (Entry<Integer, Point> p : playerPieces.entrySet()) {
-                    if (min == null || Math.abs(crowdedX - p.getValue().x) < Math.abs(crowdedX - min.getValue().x)) {
-                        min = p;
-                    }
-                }
-                if (Math.abs(crowdedX - min.getValue().x) > pieceDiameter / 2 && destinations.peek().priority != WALL_HOLDING_PRIORITY) {
-                    System.out.println("***Block wall, move " + min.getKey() + " to (" + crowdedX + ", " + cY + ")");
-                    destinations.add(new Destination(WALL_HOLDING_PRIORITY, min.getKey(), new Point(crowdedX, cY)));
+                final Integer closerId = getCloser(blockPoint, playerPieces);
+                if (Math.abs(crowdedX - playerPieces.get(closerId).x) > pieceDiameter / 2 && destinations.peek().priority != WALL_HOLDING_PRIORITY) {
+                    System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
+                    destinations.add(new Destination(WALL_HOLDING_PRIORITY, closerId, blockPoint));
 
                 }
             }
@@ -359,7 +350,7 @@ public class Player implements flip.sim.Player {
         final double deltaY = pieceDiameter * Math.sin(angle);
         return new Point(pos.x + deltaX, pos.y + deltaY);
     }
-    
+
     protected double getDistance(Point p1, Point p2) {
         return Math.hypot(p2.y - p1.y, p2.x - p1.x);
     }
