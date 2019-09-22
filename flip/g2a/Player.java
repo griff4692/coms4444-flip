@@ -79,6 +79,14 @@ public class Player implements flip.sim.Player {
 
         List<Pair<Integer, Point>> moves = new ArrayList<>();
 
+        ArrayList<Point> runnerPath = findBestRunnerIdx(playerPieces, opponentPieces);
+        ArrayList<Point> replacementPath = new ArrayList<>();
+        if(runnerPath.size() > 0) {
+            replacementPath = findBestReplacementIdx(playerPieces, opponentPieces,
+                    playerPieces.get((int) runnerPath.get(0).x));
+            System.out.println("HERE");
+        }
+
         detectWall(playerPieces, opponentPieces);
 
         for (int i = 0; i < numMoves; i++) {
@@ -108,6 +116,39 @@ public class Player implements flip.sim.Player {
         }
         System.out.println("***" + moves);
         return moves;
+    }
+
+    protected ArrayList<Point> findBestRunnerIdx(HashMap<Integer, Point> playerPieces,
+                                    HashMap<Integer, Point> opponentPieces) {
+        ArrayList<Point> runnerPath = new ArrayList<Point>();
+        if(wallHoldingPieces.size() > 0) {
+            double minX = 120.0;
+            double cumY = 0.;
+            for(int pidx : wallHoldingPieces) {
+                minX = Math.min(playerPieces.get(pidx).x, minX);
+                cumY = cumY + playerPieces.get(pidx).y;
+            }
+            Point target = new Point(minX, cumY / (double) wallHoldingPieces.size());
+            runnerPath = shortestPathToTarget(playerPieces, opponentPieces, target);
+        }
+
+        return runnerPath;
+    }
+
+    protected ArrayList<Point> findBestReplacementIdx(HashMap<Integer, Point> playerPieces,
+                                    HashMap<Integer, Point> opponentPieces, Point target) {
+        ArrayList<Point> replacementPath = new ArrayList<>();
+        if(wallHoldingPieces.size() > 0) {
+            double minX = 120.0;
+            double cumY = 0.;
+            for(int pidx : wallHoldingPieces) {
+                minX = Math.min(playerPieces.get(pidx).x, minX);
+                cumY = cumY + playerPieces.get(pidx).y;
+            }
+            replacementPath = shortestPathToTarget(playerPieces, opponentPieces, target);
+        }
+
+        return replacementPath;
     }
 
     protected void setupStrategy(HashMap<Integer, Point> pieces) {
@@ -166,6 +207,16 @@ public class Player implements flip.sim.Player {
         }
     }
 
+    protected ArrayList<Point> shortestPathToTarget(HashMap<Integer, Point> playerPieces,
+                                               HashMap<Integer, Point> opponentPieces, Point target) {
+        dBoard.reset();
+        dBoard.recordOpponentPieces(opponentPieces.values());
+        dBoard.recordPlayerPiecesIdx(playerPieces.values());
+
+        Pair<Integer, Integer> discreteCoords = dBoard.getDiscreteBoardCoords(target);
+        return dBoard.findClosestPiece(discreteCoords);
+    }
+
     protected void detectWall(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
         try {
             dBoard.reset();
@@ -185,7 +236,6 @@ public class Player implements flip.sim.Player {
                 if (Math.abs(crowdedX - min.getValue().x) > pieceDiameter / 2 && destinations.peek().priority != WALL_HOLDING_PRIORITY) {
                     System.out.println("***Block wall, move " + min.getKey() + " to (" + crowdedX + ", " + cY + ")");
                     destinations.add(new Destination(WALL_HOLDING_PRIORITY, min.getKey(), new Point(crowdedX, cY)));
-
                 }
             }
         } catch (Exception e) {
