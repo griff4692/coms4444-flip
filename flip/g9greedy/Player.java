@@ -31,7 +31,7 @@ public class Player implements flip.sim.Player
     // t: Total turns available.
 	public void init(HashMap<Integer, Point> pieces, int n, double t, boolean isplayer1, double diameter_piece)
 	{
-//		System.out.println("N = " + n);
+		System.out.println("N = " + n);
 		this.n = n;
 		this.isplayer1 = isplayer1;
 		this.diameter_piece = diameter_piece;

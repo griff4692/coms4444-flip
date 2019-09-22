@@ -1,4 +1,4 @@
-package flip.g6old;
+package flip.g6;
 import java.util.List;
 import java.util.Collections;
 import java.util.List;
@@ -11,7 +11,7 @@ import flip.sim.Point;
 import flip.sim.Board;
 import flip.sim.Log;
 
-public class Player implements flip.sim.Player
+public class Player3 implements flip.sim.Player
 {
 	//private int seed = 50;
 	private Random random;
@@ -20,7 +20,7 @@ public class Player implements flip.sim.Player
 	private Double diameter_piece;
 
 
-	public Player()
+	public Player3()
 	{
 		random = new Random();
 	}
