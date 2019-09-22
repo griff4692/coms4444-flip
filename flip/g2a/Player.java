@@ -164,7 +164,7 @@ public class Player implements flip.sim.Player {
         HashMap<Integer, Point> cPieces = new HashMap<>(pieces);
         Integer runner = getCloser(new Point(0, 0), cPieces);
         cPieces.remove(runner);
-        destinations.add(new Destination(RUNNER_PRIORITY, runner, new Point(0, 0)));
+        destinations.add(new Destination(RUNNER_PRIORITY, runner, new Point(20, 0)));
 
         // pick wall pieces (based on closeness to wall pieces position
         final double wallOffset = 40.0 / 12;
