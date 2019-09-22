@@ -83,10 +83,12 @@ public class Player implements flip.sim.Player {
         List<Pair<Integer, Point>> moves = new ArrayList<>();
 
         ArrayList<Point> runnerPath = findBestRunnerIdx(playerPieces, opponentPieces);
+
         ArrayList<Point> replacementPath = new ArrayList<>();
         if(runnerPath.size() > 0) {
             replacementPath = findBestReplacementIdx(playerPieces, opponentPieces,
                     playerPieces.get((int) runnerPath.get(0).x));
+            getReplacementMoves(playerPieces, runnerPath.get(0).x, replacementPath.get(0).x);
         }
 
         detectWall(playerPieces, opponentPieces);
@@ -101,8 +103,8 @@ public class Player implements flip.sim.Player {
                 i--;
                 continue;
             }
-            System.out.println(destinations);
-            System.out.println("*** " + d);
+            //.println(destinations);
+            //System.out.println("*** " + d);
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
             final Pair<Integer, Point> move = this.getPositionToMove(piecePair, playerPieces, opponentPieces, theta);
@@ -156,6 +158,18 @@ public class Player implements flip.sim.Player {
         return replacementPath;
     }
 
+    protected void getReplacementMoves(HashMap<Integer, Point> playerPieces, 
+    double runneridx, double replacementidx){
+        Point runnerLocation = playerPieces.get(runneridx);
+        Point replacementLocation = playerPieces.get(replacementidx);
+
+        final Point runnerMove = new Point(0,0);
+        final Point replacementMove = runnerLocation;
+        destinations.add(new Destination(RUNNER_PRIORITY + 1, (int)runneridx, runnerMove));
+        destinations.add(new Destination(RUNNER_PRIORITY, (int)replacementidx, replacementMove));
+    }
+
+
     protected void setupStrategy(HashMap<Integer, Point> pieces) {
         final Comparator<Destination> dc = (Destination d1, Destination d2) -> d1.priority.compareTo(d2.priority);
         this.destinations = new PriorityQueue(n, dc);
@@ -193,9 +207,9 @@ public class Player implements flip.sim.Player {
         final Destination d = destinations.peek();
         final Point curPos = playerPieces.get(d.id);
         final double distance = Math.hypot(d.position.y - curPos.y, d.position.x - curPos.x);
-        System.out.println("***distance " + distance);
+        //System.out.println("***distance " + distance);
         if (distance < pieceDiameter / 2) {
-            System.out.println("***Removing " + destinations.poll() + " distance " + distance);
+            //System.out.println("***Removing " + destinations.poll() + " distance " + distance);
             if (d.priority == WALL_HOLDING_PRIORITY) {
                 wallHoldingPieces.add(d.id);
             }
