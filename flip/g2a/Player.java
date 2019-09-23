@@ -14,7 +14,7 @@ import java.util.Queue;
 
 public class Player implements flip.sim.Player {
 
-    private final static double WALL_POSITION = -19.0;
+    private final static double WALL_POSITION = -22.0;
     private final static double WALL_HOLDING_PRIORITY = -1.0;
     private final static double WALL_FORMATION_PRIORITY = 2.0;
     private final static double RUNNER_PRIORITY = 4.0;
@@ -104,6 +104,11 @@ public class Player implements flip.sim.Player {
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
             final Pair<Integer, Point> move = this.getPositionToMove(piecePair, playerPieces, opponentPieces, theta);
+            if (getDistance(d.position, move.getValue()) > getDistance(d.position, piecePair.getValue())) {
+                destinations.poll();
+                i--;
+                continue;
+            }
             moves.add(move);
             playerPieces.put(move.getKey(), move.getValue());
             updateQueue(playerPieces);
@@ -194,11 +199,11 @@ public class Player implements flip.sim.Player {
                         RUNNER_PRIORITY + 1.01,
                         bestRunner.getKey(),
                         breachPoint));
-//                
-//                destinations.add(new Destination(
-//                        RUNNER_PRIORITY + 1.02,
-//                        oldWallHolder,
-//                        new Point(18, breachPoint.y)));
+                
+                destinations.add(new Destination(
+                        RUNNER_PRIORITY + 1.02,
+                        oldWallHolder,
+                        new Point(18, breachPoint.y)));
                 
 //                createDestinationsFromPath(
 //                        bestRunner.getKey(),
@@ -227,7 +232,7 @@ public class Player implements flip.sim.Player {
             HashMap<Integer, Point> cPieces = new HashMap<>(pieces);
             Integer runner = getCloser(new Point(20, 0), cPieces);
             cPieces.remove(runner);
-            destinations.add(new Destination(WALL_BREAKER_PRIORITY, runner, new Point(20, 0)));
+            destinations.add(new Destination(WALL_BREAKER_PRIORITY, runner, new Point(21, 0)));
 
             // pick wall pieces (based on closeness to wall pieces position
             final double wallOffset = 40.0 / 12;
@@ -295,7 +300,7 @@ public class Player implements flip.sim.Player {
                 if ((destinations.isEmpty() || destinations.peek().priority != WALL_HOLDING_PRIORITY) && wallHoldingPieces.isEmpty()) {
                     final Point closerPosition = playerPieces.get(closerId);
                     final Point altBlockPoint = new Point(closerPosition.x + pieceDiameter / 2, closerPosition.y);
-                    //System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
+                    System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
                     //destinations.add(new Destination(WALL_HOLDING_PRIORITY, closerId, 
                     //        Math.abs(crowdedX - closerPosition.x) > pieceDiameter / 2 ? blockPoint : altBlockPoint));
                     destinations.add(new Destination(WALL_HOLDING_PRIORITY, closerId, blockPoint));
