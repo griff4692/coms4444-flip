@@ -182,7 +182,11 @@ public class DiscreteBoard {
                     count++;
                 }
             }
+<<<<<<< HEAD
             if ((double) count / board.length > 0.1) {
+=======
+            if ((double) count / board.length > 0.15) {
+>>>>>>> 7f1f2fc... 
                 return (double) j * gridResolution - width / 2;
             }
         }
@@ -208,7 +212,7 @@ public class DiscreteBoard {
 
     public Double findAHole(double x) {
         final int col = (int) ((x + width / 2) / gridResolution);
-        int d = 1;
+        int d = 4;
         int blanks;
         Integer bestRow = null;
         int bestRowBlanks = 0;
