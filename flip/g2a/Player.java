@@ -17,8 +17,9 @@ public class Player implements flip.sim.Player {
     private final static double WALL_POSITION = -19.0;
     private final static double WALL_HOLDING_PRIORITY = -1.0;
     private final static double WALL_FORMATION_PRIORITY = 2.0;
-    private final static double RUNNER_PRIORITY = 1.0;
-    private final static double REPLACEMENT_PRIORITY = 0.0;
+    private final static double RUNNER_PRIORITY = 4.0;
+    private final static double WALL_BREAKER_PRIORITY = 0.0;
+    private final static double REPLACEMENT_PRIORITY = 3.0;
 
     private int seed = 42;
     private boolean isPlayer1;
@@ -91,23 +92,12 @@ public class Player implements flip.sim.Player {
 
         List<Pair<Integer, Point>> moves = new ArrayList<>();
 
-        ArrayList<Point> runnerPath = findBestRunnerIdx(playerPieces, opponentPieces);
-
-        ArrayList<Point> replacementPath = new ArrayList<>();
-        if(runnerPath.size() > 0) {
-            replacementPath = findBestReplacementIdx(playerPieces, opponentPieces,
-                    playerPieces.get((int) runnerPath.get(0).x));
-        }
-
         detectWall(playerPieces, opponentPieces);
-
-        if (runnerPath.size() > 0 && replacementPath.size() > 0){
-            getReplacementMoves(playerPieces, (int) runnerPath.get(0).x, (int) replacementPath.get(0).x);
-        }
 
         for (int i = 0; i < numMoves; i++) {
             final Destination d = destinations.peek();
             if (d == null) {
+                passARunner(playerPieces, opponentPieces);
                 break;
             }
             if (wallHoldingPieces.contains(d.id)) {
@@ -137,23 +127,30 @@ public class Player implements flip.sim.Player {
         return moves;
     }
 
-    protected ArrayList<Point> findBestRunnerIdx(HashMap<Integer, Point> playerPieces,
-                                    HashMap<Integer, Point> opponentPieces) {
-        ArrayList<Point> runnerPath = new ArrayList<Point>();
-        if(wallHoldingPieces.size() > 0) {
-            double minX = 120.0;
-            double cumY = 0.;
-            for(int pidx : wallHoldingPieces) {
-                minX = Math.min(playerPieces.get(pidx).x, minX);
-                cumY = cumY + playerPieces.get(pidx).y;
-            }
-            Point target = new Point(minX, cumY / (double) wallHoldingPieces.size());
-            runnerPath = shortestPathToTarget(playerPieces, opponentPieces, target);
+    protected Pair<Integer, List<Point>> findBestRunner(HashMap<Integer, Point> playerPieces,
+            HashMap<Integer, Point> opponentPieces) {
+        if (wallHoldingPieces.size() > 0) {
+            //double minX = 120.0;
+            //double cumY = 0.0;
+            //for (int pidx : wallHoldingPieces) {
+            //    minX = Math.min(playerPieces.get(pidx).x, minX);
+            //    cumY = cumY + playerPieces.get(pidx).y;
+            //}
+            //Point target = new Point(minX - pieceDiameter, cumY / (double) wallHoldingPieces.size());
+            final Point breachPoint = playerPieces.get(wallHoldingPieces.get(0));
+            final Point target = new Point(breachPoint.x - pieceDiameter, breachPoint.y);
+            return shortestPathToTarget(playerPieces, opponentPieces, target);
         }
 
-        return runnerPath;
+        return null;
     }
 
+    protected Pair<Integer, List<Point>> findBestReplacement(HashMap<Integer, Point> playerPieces,
+            HashMap<Integer, Point> opponentPieces, Point target) {
+        return shortestPathToTarget(playerPieces, opponentPieces, new Point(target.x - pieceDiameter, target.y));
+    }
+
+<<<<<<< HEAD
     protected ArrayList<Point> findBestReplacementIdx(HashMap<Integer, Point> playerPieces,
                                     HashMap<Integer, Point> opponentPieces, Point target) {
         ArrayList<Point> replacementPath = new ArrayList<>();
@@ -173,26 +170,61 @@ public class Player implements flip.sim.Player {
                 cumY = cumY + playerPieces.get(pidx).y;
             }
             replacementPath = shortestPathToTarget(playerPiecesNotOnWall, opponentPieces, target);
+=======
+    protected void passARunner(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
+        final Pair<Integer, List<Point>> bestRunner = findBestRunner(playerPieces, opponentPieces);
+        if (bestRunner != null) {
+            Pair<Integer, List<Point>> bestReplacement = findBestReplacement(playerPieces, opponentPieces,
+                    playerPieces.get(bestRunner.getKey()));
+            if (bestReplacement != null) {
+                System.out.println("Runner " + bestRunner);
+                System.out.println("Replacement " + bestReplacement);
+                
+                final Point runnerPos = playerPieces.get(bestRunner.getKey());
+                
+                createDestinationsFromPath(
+                        bestReplacement.getKey(), 
+                        bestReplacement.getValue(), 
+                        REPLACEMENT_PRIORITY, 
+                        0.001
+                );
+                
+                destinations.add(new Destination(
+                        (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2,
+                        bestReplacement.getKey(),
+                        new Point(runnerPos.x - pieceDiameter, runnerPos.y)));
+                destinations.add(new Destination(
+                        (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2 + 0.01,
+                        bestRunner.getKey(),
+                        new Point(runnerPos.x + pieceDiameter, runnerPos.y)));
+                destinations.add(new Destination(
+                        (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2 + 0.02,
+                        bestReplacement.getKey(),
+                        runnerPos));
+                
+                final Point breachPoint = playerPieces.get(wallHoldingPieces.get(0));
+                final Point target = new Point(breachPoint.x - pieceDiameter, breachPoint.y);
+                destinations.add(new Destination(
+                        (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2 + 0.03,
+                        bestRunner.getKey(),
+                        target));
+                
+//                createDestinationsFromPath(
+//                        bestRunner.getKey(),
+//                        bestRunner.getValue(),
+//                        RUNNER_PRIORITY,
+//                        0.001
+//                );
+            }
+>>>>>>> 3df4d5b... Runner and replacer
         }
-
-        return replacementPath;
     }
-
-    protected void getReplacementMoves(HashMap<Integer, Point> playerPieces, 
-    int runneridx, int replacementidx){
-        Point runnerLocation = playerPieces.get(runneridx);
-        Point replacementLocation = playerPieces.get(replacementidx);
-
-        final Point runnerMove = new Point(20,0);
-        final Point replacementMove = runnerLocation;
-        System.out.println("runneridx" + runneridx);
-        System.out.println("replacementidx" + replacementidx);
-
-        destinations.add(new Destination(5.0, (int)runneridx, runnerMove));
-       // if (Math.abs(runnerLocation.x - playerPieces.get(replacementidx).x) > pieceDiameter / 2 && wallfillingpiece == null){
-         //   wallfillingpiece = replacementidx;
-            destinations.add(new Destination(8.0, (int)replacementidx, replacementMove));
-       // }
+    
+    protected void createDestinationsFromPath(Integer piece, List<Point> path, double priority, double priorityIncrement) {
+        for (Point p : path) {
+            destinations.add(new Destination(priority, piece, p));
+            priority += priorityIncrement;
+        }
     }
 
     protected void setupStrategy(HashMap<Integer, Point> pieces) {
@@ -201,11 +233,17 @@ public class Player implements flip.sim.Player {
 
         // pick a runner
         HashMap<Integer, Point> cPieces = new HashMap<>(pieces);
+<<<<<<< HEAD
         Integer runner = getCloser(new Point(0, 0), cPieces);
         runnerPiece = runner;
         cPieces.remove(runner);
         double runnerY = 0.5 * pieces.get(runner).y;
         destinations.add(new Destination(RUNNER_PRIORITY, runner, new Point(0, runnerY)));
+=======
+        Integer runner = getCloser(new Point(20, 0), cPieces);
+        cPieces.remove(runner);
+        destinations.add(new Destination(WALL_BREAKER_PRIORITY, runner, new Point(20, 0)));
+>>>>>>> 3df4d5b... Runner and replacer
 
         // pick wall pieces (based on closeness to wall pieces position
         final double wallOffset = 40.0 / 12;
@@ -245,14 +283,13 @@ public class Player implements flip.sim.Player {
         }
     }
 
-    protected ArrayList<Point> shortestPathToTarget(HashMap<Integer, Point> playerPieces,
-                                               HashMap<Integer, Point> opponentPieces, Point target) {
+    protected Pair<Integer, List<Point>> shortestPathToTarget(HashMap<Integer, Point> playerPieces,
+            HashMap<Integer, Point> opponentPieces, Point target) {
         dBoard.reset();
         dBoard.recordOpponentPieces(opponentPieces.values());
         dBoard.recordPlayerPiecesIdx(playerPieces.values());
 
-        Pair<Integer, Integer> discreteCoords = dBoard.getDiscreteBoardCoords(target);
-        return dBoard.findClosestPiece(discreteCoords);
+        return dBoard.findClosestPiece(target);
     }
 
     protected void detectWall(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
@@ -289,11 +326,11 @@ public class Player implements flip.sim.Player {
         // check for collisions
         valid = valid && !Board.check_collision(player_pieces, move);
         if (!valid) {
-//            System.out.println("Collision with own pieces");
+            System.out.println("Collision with own pieces");
         }
         valid = valid && !Board.check_collision(opponent_pieces, move);
         if (!valid) {
-//            System.out.println("Collision with opponent pieces");
+            System.out.println("Collision with opponent pieces");
         }
 
         // check within bounds
