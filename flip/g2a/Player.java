@@ -18,6 +18,7 @@ public class Player implements flip.sim.Player {
     private final static double WALL_HOLDING_PRIORITY = -1.0;
     private final static double WALL_FORMATION_PRIORITY = 2.0;
     private final static double RUNNER_PRIORITY = 1.0;
+    private final static double REPLACEMENT_PRIORITY = 0.0;
 
     private int seed = 42;
     private boolean isPlayer1;
@@ -27,8 +28,12 @@ public class Player implements flip.sim.Player {
     private DiscreteBoard dBoard;
     private Queue<Destination> destinations;
     private List<Integer> wallHoldingPieces;
+<<<<<<< HEAD
     private List<Integer> wallFormationPieces;
     private Integer runnerPiece;
+=======
+    private Integer wallfillingpiece;
+>>>>>>> f417d46... Add get ReplacementMoves function
 
     public Player() {
         wallHoldingPieces = new ArrayList<>();
@@ -92,10 +97,13 @@ public class Player implements flip.sim.Player {
         if(runnerPath.size() > 0) {
             replacementPath = findBestReplacementIdx(playerPieces, opponentPieces,
                     playerPieces.get((int) runnerPath.get(0).x));
-            getReplacementMoves(playerPieces, runnerPath.get(0).x, replacementPath.get(0).x);
         }
 
         detectWall(playerPieces, opponentPieces);
+
+        if (runnerPath.size() > 0 && replacementPath.size() > 0){
+            getReplacementMoves(playerPieces, (int) runnerPath.get(0).x, (int) replacementPath.get(0).x);
+        }
 
         for (int i = 0; i < numMoves; i++) {
             final Destination d = destinations.peek();
@@ -107,7 +115,7 @@ public class Player implements flip.sim.Player {
                 i--;
                 continue;
             }
-            //.println(destinations);
+            //System.out.println(destinations);
             //System.out.println("*** " + d);
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
@@ -171,16 +179,21 @@ public class Player implements flip.sim.Player {
     }
 
     protected void getReplacementMoves(HashMap<Integer, Point> playerPieces, 
-    double runneridx, double replacementidx){
+    int runneridx, int replacementidx){
         Point runnerLocation = playerPieces.get(runneridx);
         Point replacementLocation = playerPieces.get(replacementidx);
 
-        final Point runnerMove = new Point(0,0);
+        final Point runnerMove = new Point(20,0);
         final Point replacementMove = runnerLocation;
-        destinations.add(new Destination(RUNNER_PRIORITY + 1, (int)runneridx, runnerMove));
-        destinations.add(new Destination(RUNNER_PRIORITY, (int)replacementidx, replacementMove));
-    }
+        System.out.println("runneridx" + runneridx);
+        System.out.println("replacementidx" + replacementidx);
 
+        destinations.add(new Destination(5.0, (int)runneridx, runnerMove));
+       // if (Math.abs(runnerLocation.x - playerPieces.get(replacementidx).x) > pieceDiameter / 2 && wallfillingpiece == null){
+         //   wallfillingpiece = replacementidx;
+            destinations.add(new Destination(8.0, (int)replacementidx, replacementMove));
+       // }
+    }
 
     protected void setupStrategy(HashMap<Integer, Point> pieces) {
         final Comparator<Destination> dc = (Destination d1, Destination d2) -> d1.priority.compareTo(d2.priority);
@@ -225,7 +238,7 @@ public class Player implements flip.sim.Player {
         final double distance = Math.hypot(d.position.y - curPos.y, d.position.x - curPos.x);
         //System.out.println("***distance " + distance);
         if (distance < pieceDiameter / 2) {
-            //System.out.println("***Removing " + destinations.poll() + " distance " + distance);
+            System.out.println("***Removing " + destinations.poll() + " distance " + distance);
             if (d.priority == WALL_HOLDING_PRIORITY) {
                 wallHoldingPieces.add(d.id);
             }
@@ -255,7 +268,7 @@ public class Player implements flip.sim.Player {
                 //System.out.println("***" + cY);
                 final Integer closerId = getCloser(blockPoint, playerPieces);
                 if (Math.abs(crowdedX - playerPieces.get(closerId).x) > pieceDiameter / 2 && destinations.peek().priority != WALL_HOLDING_PRIORITY) {
-                    System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
+                    //System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
                     destinations.add(new Destination(WALL_HOLDING_PRIORITY, closerId, blockPoint));
                 }
             }
