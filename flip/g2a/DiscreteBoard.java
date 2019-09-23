@@ -183,6 +183,23 @@ public class DiscreteBoard {
         }
         return null;
     }
+    
+    public boolean isThereAFullColumn(double minX, double maxX) {
+        final int minXR = (int) ((minX + width / 2) / gridResolution);
+        final int maxXR = (int) ((maxX + width / 2) / gridResolution);
+        for (int j = minXR; j < maxXR; j++) {
+            int count = 0;
+            for (int i = 0; i < board.length; i++) {
+                if (board[i][j] != null) {
+                    count++;
+                }
+            }
+            if (count == board.length) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public Double findAHole(double x) {
         final int col = (int) ((x + width / 2) / gridResolution);
