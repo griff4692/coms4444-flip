@@ -105,8 +105,8 @@ public class Player implements flip.sim.Player {
                 i--;
                 continue;
             }
-            System.out.println(destinations);
-            System.out.println("*** " + d);
+            //System.out.println(destinations);
+            //System.out.println("*** " + d);
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
             final Pair<Integer, Point> move = this.getPositionToMove(piecePair, playerPieces, opponentPieces, theta);
@@ -180,17 +180,65 @@ public class Player implements flip.sim.Player {
         double runnerY = 0.5 * pieces.get(runner).y;
         destinations.add(new Destination(RUNNER_PRIORITY, runner, new Point(0, runnerY)));
 
-        // pick wall pieces (based on closeness to wall pieces position
-        final double wallOffset = 40.0 / 12;
-        for (int i = 0; i < 12; i++) {
-            final Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
-            final Integer closest = getCloser(wallPoint, cPieces);
-            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPoint));
-            cPieces.remove(closest);
+        setupWall(cPieces, pieces);
+    }
 
+
+    //choose pieces for wall positions
+    //will iterate throught the wall positions and record the wall position with the nearest
+    //piece, the piece that was nearest, remove these from both lists, and then
+    //find the next
+    protected void setupWall(
+            HashMap<Integer, Point> cPieces, 
+            HashMap<Integer, Point> pieces){
+
+        ArrayList<Point> wallPositions = getWallPositions();
+        for (int i = 0; i < 11; i++){
+            System.out.println("doing this " + i);
+            double shortestDistance = Double.POSITIVE_INFINITY;
+            //default to the third wall point and the closest coin to it
+            Point wallPointToFill = wallPositions.get(0);
+            Integer closest = getCloser(wallPointToFill, cPieces);
+
+            for (Point wallPoint : wallPositions){
+                final Integer closestToHole = getCloser(wallPoint, cPieces);
+                Point closestPiecePoint = pieces.get(closestToHole);
+                double distance = euclideanDistance(wallPoint, closestPiecePoint);
+                if (distance < shortestDistance){
+                    shortestDistance = distance;
+                    wallPointToFill = wallPoint;
+                    closest = closestToHole;
+                }
+            }
+            System.out.println("selected wall position at: " + wallPointToFill);
+            //need to adjust priority based on where the opponent piece is. 
+            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPointToFill));
+            cPieces.remove(closest);
+            wallPositions.remove(wallPointToFill);
             wallFormationPieces.add(closest);
         }
     }
+
+    protected double euclideanDistance(Point p1, Point p2){
+        double distance = Math.sqrt((p1.y - p2.y)*(p1.y-p2.y) + (p1.x-p2.x)*(p1.x-p2.x));
+        return distance;
+    }
+
+
+
+    //first need to create a list of wall positions
+    protected ArrayList<Point> getWallPositions(){
+        ArrayList<Point> wallPositions = new ArrayList<Point>();
+        final double wallOffset = 40.0 / 11;
+        for (int i = 0; i < 11; i++){
+            Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
+            wallPositions.add(wallPoint);
+        }
+        return wallPositions;
+    }
+
+
+
 
     protected Integer getCloser(Point point, HashMap<Integer, Point> pieces) {
         double bestDistance = Double.POSITIVE_INFINITY;
@@ -209,9 +257,10 @@ public class Player implements flip.sim.Player {
         final Destination d = destinations.peek();
         final Point curPos = playerPieces.get(d.id);
         final double distance = Math.hypot(d.position.y - curPos.y, d.position.x - curPos.x);
-        System.out.println("***distance " + distance);
+        //System.out.println("***distance " + distance);
         if (distance < pieceDiameter / 2) {
-            System.out.println("***Removing " + destinations.poll() + " distance " + distance);
+            destinations.poll();
+            //System.out.println("***Removing " + destinations.poll() + " distance " + distance);
             if (d.priority == WALL_HOLDING_PRIORITY) {
                 wallHoldingPieces.add(d.id);
             }
@@ -241,7 +290,7 @@ public class Player implements flip.sim.Player {
                 //System.out.println("***" + cY);
                 final Integer closerId = getCloser(blockPoint, playerPieces);
                 if (Math.abs(crowdedX - playerPieces.get(closerId).x) > pieceDiameter / 2 && destinations.peek().priority != WALL_HOLDING_PRIORITY) {
-                    System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
+                    //System.out.println("***Block wall, move " + closerId + " to (" + crowdedX + ", " + cY + ")");
                     destinations.add(new Destination(WALL_HOLDING_PRIORITY, closerId, blockPoint));
                 }
             }
@@ -256,7 +305,7 @@ public class Player implements flip.sim.Player {
 
         // check if move is adjacent to previous position.
         if (!Board.almostEqual(Board.getdist(player_pieces.get(move.getKey()), move.getValue()), pieceDiameter)) {
-            System.out.println("No Adjacent");
+            //System.out.println("No Adjacent");
             return false;
         }
         // check for collisions
