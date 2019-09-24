@@ -3,10 +3,8 @@ package flip.g2a;
 import flip.sim.Point;
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Collection;
+import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  *
@@ -165,7 +163,7 @@ public class DiscreteBoard {
                     count++;
                 }
             }
-            if ((double) count / board.length > 0.2) {
+            if ((double) count / board.length > 0.1) {
                 return (double) j * gridResolution - width / 2;
             }
         }
@@ -193,6 +191,79 @@ public class DiscreteBoard {
             }
         }
         return (bestRow == null) ? null : bestRow.doubleValue() * gridResolution - height / 2;
+    }
+
+    public int findClosestSumDistances(int lowY, int highY, int x) {
+        boolean[][] used = new boolean[board.length][board[0].length];
+
+        for(int i = 0; i < board.length; i++) {
+            for(int j = 0; j < board[0].length; j++) {
+                used[i][j] = false;
+            }
+        }
+
+        int totalDistance = 0;
+        for(int wallY = lowY; wallY < highY; wallY++) {
+            int closestX = -1;
+            int closestY = -1;
+            int closestDistance = 999;
+            for(int row = 0; row < board.length; row++) {
+                for (int col = x + 1; col < board[0].length; col++) {
+                    if(board[row][col] != null && board[row][col] == -1 && !used[row][col]) {
+                        int distance = Math.abs(wallY - row) + Math.abs(x - col);
+                        if(distance <= closestDistance) {
+                            closestX = col;
+                            closestY = row;
+                            closestDistance = distance;
+                        }
+                    }
+                }
+            }
+            used[closestY][closestX] = true;
+            totalDistance += closestDistance;
+        }
+
+        return totalDistance;
+    }
+
+    public double findBestHole(double x, double runnerY, double runnerX) {
+        int runnerYDiscrete = (int) ((runnerY + height / 2) / gridResolution);
+        int runnerXDiscrete = (int) ((runnerX + width / 2) / gridResolution);
+        final int wallCol = (int) ((x + width / 2) / gridResolution);
+
+        double bestY = -1.0;
+        int bestDeltaAdvantage = -9999;
+
+        int currTop = -1;
+        for (int i = 0; i < board.length; i++) {
+            if (board[i][wallCol] != null) {
+                if(currTop > -1) {
+                    int opponentDistances = findClosestSumDistances(currTop, i, wallCol);
+                    int wallMid = (int) ((i - 1 + currTop) / 2.0);
+                    int myDistance = Math.abs(runnerXDiscrete - wallCol) + Math.abs(runnerYDiscrete - wallMid);
+                    int delta = opponentDistances - myDistance;
+                    if(delta >= bestDeltaAdvantage) {
+                        bestY = (double) wallMid * gridResolution - 20.;
+                        bestDeltaAdvantage = delta;
+                    }
+                }
+                currTop = -1;
+            } else {
+                currTop = currTop == -1 ? i : currTop;
+            }
+        }
+
+        if(currTop > -1) {
+            int opponentDistances = findClosestSumDistances(currTop, board.length, wallCol);
+            int wallMid = (int) ((board.length - 1 + currTop) / 2.0);
+            int myDistance = Math.abs(runnerXDiscrete - wallCol) + Math.abs(runnerYDiscrete - wallMid);
+            int delta = opponentDistances - myDistance;
+            if(delta >= bestDeltaAdvantage) {
+                bestY = (double) wallMid * gridResolution - 20.;
+            }
+        }
+
+        return bestY;
     }
 
 }
