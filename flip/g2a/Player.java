@@ -91,8 +91,12 @@ public class Player implements flip.sim.Player {
             final Destination d = destinations.peek();
             if (d == null) {
                 passARunner(playerPieces, opponentPieces);
+<<<<<<< HEAD
                 i--;
                 continue;
+=======
+                break;
+>>>>>>> 3df4d5b... Runner and replacer
             }
             if (wallHoldingPieces.contains(d.id)) {
                 destinations.poll();
@@ -142,6 +146,7 @@ public class Player implements flip.sim.Player {
         }
 
         return null;
+<<<<<<< HEAD
     }
 
     protected Pair<Integer, List<Point>> findBestReplacement(HashMap<Integer, Point> playerPieces,
@@ -149,6 +154,15 @@ public class Player implements flip.sim.Player {
         return shortestPathToTarget(playerPieces, opponentPieces, new Point(target.x - pieceDiameter, target.y));
     }
 
+=======
+    }
+
+    protected Pair<Integer, List<Point>> findBestReplacement(HashMap<Integer, Point> playerPieces,
+            HashMap<Integer, Point> opponentPieces, Point target) {
+        return shortestPathToTarget(playerPieces, opponentPieces, new Point(target.x - pieceDiameter, target.y));
+    }
+
+>>>>>>> 3df4d5b... Runner and replacer
     protected void passARunner(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
         final Pair<Integer, List<Point>> bestRunner = findBestRunner(playerPieces, opponentPieces);
         if (bestRunner != null) {
@@ -187,6 +201,7 @@ public class Player implements flip.sim.Player {
                         bestRunner.getKey(),
                         target));
                 
+<<<<<<< HEAD
                 Integer oldWallHolder = wallHoldingPieces.get(0);
 //                wallHoldingPieces.remove(0);
 //                wallHoldingPieces.add(bestRunner.getKey());
@@ -205,6 +220,8 @@ public class Player implements flip.sim.Player {
                         oldWallHolder,
                         new Point(18, breachPoint.y)));
                 
+=======
+>>>>>>> 3df4d5b... Runner and replacer
 //                createDestinationsFromPath(
 //                        bestRunner.getKey(),
 //                        bestRunner.getValue(),
@@ -226,6 +243,7 @@ public class Player implements flip.sim.Player {
         final Comparator<Destination> dc = (Destination d1, Destination d2) -> d1.priority.compareTo(d2.priority);
         this.destinations = new PriorityQueue(n, dc);
 
+<<<<<<< HEAD
         
         if (n > 12) {
             // pick a runner
@@ -248,6 +266,21 @@ public class Player implements flip.sim.Player {
                 Point position = p.getValue();
                 destinations.add(new Destination(Math.abs(position.x), id, new Point(22, position.y)));
             }
+=======
+        // pick a runner
+        HashMap<Integer, Point> cPieces = new HashMap<>(pieces);
+        Integer runner = getCloser(new Point(20, 0), cPieces);
+        cPieces.remove(runner);
+        destinations.add(new Destination(WALL_BREAKER_PRIORITY, runner, new Point(20, 0)));
+
+        // pick wall pieces (based on closeness to wall pieces position
+        final double wallOffset = 40.0 / 12;
+        for (int i = 0; i < 12; i++) {
+            final Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
+            final Integer closest = getCloser(wallPoint, cPieces);
+            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPoint));
+            cPieces.remove(closest);
+>>>>>>> 3df4d5b... Runner and replacer
         }
     }
 
