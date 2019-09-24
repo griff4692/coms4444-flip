@@ -3,16 +3,11 @@ package flip.g2a;
 import flip.sim.Point;
 import javafx.util.Pair;
 
-<<<<<<< HEAD
-import java.lang.reflect.Array;
-import java.util.*;
-=======
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Collection;
 import java.util.List;
->>>>>>> 3df4d5b... Runner and replacer
 
 /**
  *
@@ -149,6 +144,7 @@ public class DiscreteBoard {
     public void recordOpponentPieces(Collection<Point> opponentPieces) {
         for (Point p : opponentPieces) {
             Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
+            System.out.println("DC " + discreteCoords);
             board[discreteCoords.getKey()][discreteCoords.getValue()] = -1;
         }
     }
@@ -182,11 +178,7 @@ public class DiscreteBoard {
                     count++;
                 }
             }
-<<<<<<< HEAD
-            if ((double) count / board.length > 0.1) {
-=======
             if ((double) count / board.length > 0.15) {
->>>>>>> 7f1f2fc... 
                 return (double) j * gridResolution - width / 2;
             }
         }
