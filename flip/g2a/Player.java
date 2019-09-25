@@ -96,6 +96,19 @@ public class Player implements flip.sim.Player {
                 passARunner(playerPieces, opponentPieces);
                 i--;
                 continue;
+            } else {
+                //if the next location is a wall position - 
+                if (wallFormationPieces.contains(d.id)){
+                    ArrayList<Point> wallPositions = getWallPositions();
+                    //get new priorities and adjust based on that
+                    HashMap<Point, Double> wallPriorities = getWallPriorities(opponentPieces, wallPositions);
+                    double wallPriority = wallPriorities.get(d.position);
+                    Destination walldest = destinations.poll();
+                    destinations.add(new Destination(
+                        WALL_FORMATION_PRIORITY + wallPriority,
+                        walldest.id,
+                        walldest.position));
+                }
             }
             if (wallHoldingPieces.contains(d.id)) {
                 destinations.poll();
@@ -128,6 +141,43 @@ public class Player implements flip.sim.Player {
         System.out.println("***" + moves);
         return moves;
     }
+
+
+    //look through each wall piece, and then look down that
+    //row and see if there is a nearby opponent piece
+    //if there is, record distance to her, and move on
+    //find the closest nearby opponent
+    //return a hashmap from the wallposition to the priority it should have. 
+    protected HashMap<Point, Double> getWallPriorities(HashMap<Integer, Point> opponentPieces, ArrayList<Point> wallPositions){
+        HashMap<Point, Double> wallPriorities = new HashMap<>();
+        Point[] ySortedOpponents = opponentPieces.values().stream().sorted((p1, p2) -> Double.compare(p1.y, p2.y)).toArray(Point[]::new);
+        Point bestPoint = wallPositions.get(0);
+        int count = 0;
+        for (Point wallPoint : wallPositions){
+            boolean found = false;
+            int ptIdx = -1;
+            boolean nodistance = false;
+            while (found == false && ptIdx < (ySortedOpponents.length)){
+                ptIdx++;
+                if (Math.abs(wallPoint.y - ySortedOpponents[ptIdx].y) < 2){
+                    found = true;
+                } else if (ptIdx >= (ySortedOpponents.length)){
+                    nodistance = true;
+                }
+            }
+            if (nodistance){
+                double distance = euclideanDistance(wallPoint, ySortedOpponents[ptIdx]);
+                wallPriorities.put(wallPoint, distance/70.0 + (count /1000));
+            } else {
+                //if there was no nearby opponent coin, make sure that piece is placed later.
+                wallPriorities.put(wallPoint, (count+3)/20.0);
+            }
+            count++;
+        }
+        return wallPriorities;
+    }
+
+
 
     protected Pair<Integer, List<Point>> findBestRunner(HashMap<Integer, Point> playerPieces,
             HashMap<Integer, Point> opponentPieces) {
@@ -264,7 +314,6 @@ public class Player implements flip.sim.Player {
 
         ArrayList<Point> wallPositions = getWallPositions();
         for (int i = 0; i < 11; i++){
-            System.out.println("doing this " + i);
             double shortestDistance = Double.POSITIVE_INFINITY;
             //default to the third wall point and the closest coin to it
             Point wallPointToFill = wallPositions.get(0);
@@ -282,7 +331,8 @@ public class Player implements flip.sim.Player {
             }
             System.out.println("selected wall position at: " + wallPointToFill);
             //need to adjust priority based on where the opponent piece is. 
-            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPointToFill));
+
+            destinations.add(new Destination(WALL_FORMATION_PRIORITY+(i/60), closest, wallPointToFill));
             cPieces.remove(closest);
             wallPositions.remove(wallPointToFill);
             wallFormationPieces.add(closest);
@@ -293,6 +343,8 @@ public class Player implements flip.sim.Player {
         double distance = Math.sqrt((p1.y - p2.y)*(p1.y-p2.y) + (p1.x-p2.x)*(p1.x-p2.x));
         return distance;
     }
+
+
 
 
 
