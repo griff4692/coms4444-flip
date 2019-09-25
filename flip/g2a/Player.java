@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import flip.sim.Point;
 import flip.sim.Board;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
 
 public class Player implements flip.sim.Player {
 
@@ -28,13 +30,13 @@ public class Player implements flip.sim.Player {
     private Double pieceDiameter;
     private DiscreteBoard dBoard;
     private Queue<Destination> destinations;
-    private List<Integer> wallHoldingPieces;
-    private List<Integer> wallFormationPieces;
+    private final Set<Integer> wallHoldingPieces;
+    private final Set<Integer> wallFormationPieces;
     private Integer runnerPiece;
 
     public Player() {
-        wallHoldingPieces = new ArrayList<>();
-        wallFormationPieces = new ArrayList<>();
+        wallHoldingPieces = new HashSet<>();
+        wallFormationPieces = new HashSet<>();
         runnerPiece = -1;
     }
 
@@ -139,7 +141,7 @@ public class Player implements flip.sim.Player {
             //    cumY = cumY + playerPieces.get(pidx).y;
             //}
             //Point target = new Point(minX - pieceDiameter, cumY / (double) wallHoldingPieces.size());
-            final Point breachPoint = playerPieces.get(wallHoldingPieces.get(0));
+            final Point breachPoint = playerPieces.get(wallHoldingPieces.iterator().next());
             final Point target = new Point(breachPoint.x - pieceDiameter, breachPoint.y);
             return shortestPathToTarget(playerPieces, opponentPieces, target);
         }
@@ -150,11 +152,12 @@ public class Player implements flip.sim.Player {
     protected Pair<Integer, List<Point>> findBestReplacement(HashMap<Integer, Point> playerPieces,
             HashMap<Integer, Point> opponentPieces, Point target) {
         final HashMap<Integer, Point> playerPiecesNotOnWall = new HashMap<>();
-        for (int i = 0; i < playerPieces.size(); i++) {
+        for (Integer i = 0; i < playerPieces.size(); i++) {
             if (!wallFormationPieces.contains(i)) {
                 playerPiecesNotOnWall.put(i, playerPieces.get(i));
             }
         }
+        System.out.println("***Number of non wall pieces " + playerPiecesNotOnWall.size() + "/" + wallFormationPieces.size() + "/" + playerPieces.size());
         return shortestPathToTarget(playerPiecesNotOnWall, opponentPieces, new Point(target.x - pieceDiameter, target.y));
     }
 
@@ -169,15 +172,15 @@ public class Player implements flip.sim.Player {
 
                 final Point runnerPos = playerPieces.get(bestRunner.getKey());
 
-                createDestinationsFromPath(
+                /*createDestinationsFromPath(
                         bestReplacement.getKey(),
                         bestReplacement.getValue(),
                         REPLACEMENT_PRIORITY,
                         0.001
-                );
+                );*/
 
                 destinations.add(new Destination(
-                        (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2,
+                        REPLACEMENT_PRIORITY,
                         bestReplacement.getKey(),
                         new Point(runnerPos.x - pieceDiameter, runnerPos.y)));
                 destinations.add(new Destination(
@@ -187,32 +190,34 @@ public class Player implements flip.sim.Player {
                 destinations.add(new Destination(
                         (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2 + 0.02,
                         bestReplacement.getKey(),
-                        runnerPos));
+                        new Point(runnerPos.x, runnerPos.y)));
+                wallFormationPieces.add(bestReplacement.getKey());
 
-                final Point breachPoint = playerPieces.get(wallHoldingPieces.get(0));
+                final Integer oldWallHolderId = wallHoldingPieces.iterator().next();
+                final Point breachPoint = playerPieces.get(oldWallHolderId);
                 final Point target = new Point(breachPoint.x - pieceDiameter, breachPoint.y);
                 destinations.add(new Destination(
                         (REPLACEMENT_PRIORITY + RUNNER_PRIORITY) / 2 + 0.03,
                         bestRunner.getKey(),
                         target));
 
-                Integer oldWallHolder = wallHoldingPieces.get(0);
+                
 //                wallHoldingPieces.remove(0);
 //                wallHoldingPieces.add(bestRunner.getKey());
                 destinations.add(new Destination(
                         RUNNER_PRIORITY + 1,
-                        oldWallHolder,
+                        oldWallHolderId,
                         new Point(breachPoint.x + pieceDiameter, breachPoint.y)));
 
                 destinations.add(new Destination(
                         RUNNER_PRIORITY + 1.01,
                         bestRunner.getKey(),
-                        breachPoint));
+                        new Point(breachPoint.x, breachPoint.y)));
 
                 destinations.add(new Destination(
                         RUNNER_PRIORITY + 1.02,
-                        oldWallHolder,
-                        new Point(18, breachPoint.y)));
+                        oldWallHolderId,
+                        new Point(39, breachPoint.y)));
 
 //                createDestinationsFromPath(
 //                        bestRunner.getKey(),
@@ -281,7 +286,7 @@ public class Player implements flip.sim.Player {
         final double distance = Math.hypot(d.position.y - curPos.y, d.position.x - curPos.x);
         //System.out.println("***distance " + distance);
         if (distance < pieceDiameter / 2) {
-            System.out.println("***Removing " + destinations.poll() + " distance " + distance);
+            //System.out.println("***Removing " + destinations.poll() + " distance " + distance);
             if (d.priority == WALL_HOLDING_PRIORITY) {
                 wallHoldingPieces.add(d.id);
             }
@@ -291,8 +296,8 @@ public class Player implements flip.sim.Player {
     protected Pair<Integer, List<Point>> shortestPathToTarget(HashMap<Integer, Point> playerPieces,
             HashMap<Integer, Point> opponentPieces, Point target) {
         dBoard.reset();
-        dBoard.recordOpponentPieces(opponentPieces.values());
-        dBoard.recordPlayerPiecesIdx(playerPieces.values());
+        dBoard.recordOpponentPieces(opponentPieces);
+        dBoard.recordPlayerPiecesIdx(playerPieces);
 
         return dBoard.findClosestPiece(target);
     }
@@ -300,13 +305,13 @@ public class Player implements flip.sim.Player {
     protected void detectWall(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
         try {
             dBoard.reset();
-            dBoard.recordOpponentPieces(opponentPieces.values());
-            Double crowdedX = dBoard.getCrowdedColumn(-22, 22);
+            dBoard.recordOpponentPieces(opponentPieces);
+            Double crowdedX = dBoard.getCrowdedColumn(-22, 23);
             if (crowdedX != null) {
                 System.out.println("***Crowded " + crowdedX);
                 Point p = playerPieces.get(runnerPiece);
                 final double cY = dBoard.findBestHole(crowdedX, p.y, p.x);
-                final Point blockPoint = new Point(crowdedX + pieceDiameter / 2, cY);
+                final Point blockPoint = new Point(crowdedX, cY);
                 //System.out.println("***" + cY);
                 final Integer closerId = getCloser(blockPoint, playerPieces);
                 if ((destinations.isEmpty() || destinations.peek().priority != WALL_HOLDING_PRIORITY) && wallHoldingPieces.isEmpty()) {
@@ -327,8 +332,8 @@ public class Player implements flip.sim.Player {
     protected boolean isThereAWall(HashMap<Integer, Point> playerPieces, HashMap<Integer, Point> opponentPieces) {
         try {
             dBoard.reset();
-            dBoard.recordOpponentPieces(opponentPieces.values());
-            dBoard.recordOpponentPieces(playerPieces.values());
+            dBoard.recordOpponentPieces(opponentPieces);
+            dBoard.recordOpponentPieces(playerPieces);
             return dBoard.isThereAFullColumn(WALL_POSITION + pieceDiameter, 22);
         } catch (Exception e) {
             e.printStackTrace();
@@ -347,11 +352,11 @@ public class Player implements flip.sim.Player {
         // check for collisions
         valid = valid && !Board.check_collision(player_pieces, move);
         if (!valid) {
-            System.out.println("Collision with own pieces");
+            //System.out.println("Collision with own pieces");
         }
         valid = valid && !Board.check_collision(opponent_pieces, move);
         if (!valid) {
-            System.out.println("Collision with opponent pieces");
+            //System.out.println("Collision with opponent pieces");
         }
 
         // check within bounds
