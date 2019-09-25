@@ -244,7 +244,7 @@ public class Player implements flip.sim.Player {
             double runnerY = 0.5 * pieces.get(runner).y;
             destinations.add(new Destination(WALL_BREAKER_PRIORITY, runner, new Point(0, runnerY)));
 
-            setupWall();
+            setupWall(cPieces, pieces);
         } else {
             for (Entry<Integer, Point> p : pieces.entrySet()) {
                 Integer id = p.getKey();
@@ -254,33 +254,38 @@ public class Player implements flip.sim.Player {
         }
     }
 
+    //choose pieces for wall positions
+    //will iterate throught the wall positions and record the wall position with the nearest
+    //piece, the piece that was nearest, remove these from both lists, and then
+    //find the next
     protected void setupWall(
-            HashMap<Integer, Point> cPieces, 
+            HashMap<Integer, Point> cPieces, 
             HashMap<Integer, Point> pieces){
 
-        ArrayList<Point> wallPositions = getWallPositions();
-        for (int i = 0; i < 11; i++){
-            double shortestDistance = Double.POSITIVE_INFINITY;
-            //default to the third wall point and the closest coin to it
-            Point wallPointToFill = wallPositions.get(0);
-            Integer closest = getCloser(wallPointToFill, cPieces);
+        ArrayList<Point> wallPositions = getWallPositions();
+        for (int i = 0; i < 11; i++){
+            System.out.println("doing this " + i);
+            double shortestDistance = Double.POSITIVE_INFINITY;
+            //default to the third wall point and the closest coin to it
+            Point wallPointToFill = wallPositions.get(0);
+            Integer closest = getCloser(wallPointToFill, cPieces);
 
-            for (Point wallPoint : wallPositions){
-                final Integer closestToHole = getCloser(wallPoint, cPieces);
-                Point closestPiecePoint = pieces.get(closestToHole);
-                double distance = euclideanDistance(wallPoint, closestPiecePoint);
-                if (distance < shortestDistance){
-                    shortestDistance = distance;        
-                    wallPointToFill = wallPoint;
-                    closest = closestToHole;
+            for (Point wallPoint : wallPositions){
+                final Integer closestToHole = getCloser(wallPoint, cPieces);
+                Point closestPiecePoint = pieces.get(closestToHole);
+                double distance = euclideanDistance(wallPoint, closestPiecePoint);
+                if (distance < shortestDistance){
+                    shortestDistance = distance;
+                    wallPointToFill = wallPoint;
+                    closest = closestToHole;
                 }
             }
-            System.out.println("selected wall position at: " + wallPointToFill);
-            //need to adjust priority based on where the opponent piece is. 
-            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPointToFill));
+            System.out.println("selected wall position at: " + wallPointToFill);
+            //need to adjust priority based on where the opponent piece is. 
+            destinations.add(new Destination(WALL_FORMATION_PRIORITY - (pieces.get(closest).x + 60) / 60, closest, wallPointToFill));
             cPieces.remove(closest);
             wallPositions.remove(wallPointToFill);
-            wallFormationPieces.add(closest);   
+            wallFormationPieces.add(closest);
         }
     }
 
