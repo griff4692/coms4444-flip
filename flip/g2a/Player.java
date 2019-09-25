@@ -107,6 +107,17 @@ public class Player implements flip.sim.Player {
             //System.out.println(destinations);
             //System.out.println("*** " + d);
             final Pair<Integer, Point> piecePair = new Pair<>(d.id, playerPieces.get(d.id));
+            //            dBoard.reset();
+//            dBoard.recordOpponentPieces(opponentPieces);
+//            dBoard.recordPlayerPiecesIdx(playerPieces);
+//            final Pair<Integer, List<Point>> path = dBoard.findAPath(d.position, (id) -> d.id.equals(id));
+//            if (path == null) {
+//                System.out.println("No path");
+//                destinations.poll();
+//                i--;
+//                continue;
+//            }
+//            final double theta = this.getBestAngleToMove(piecePair, path.getValue().iterator().next(), playerPieces, opponentPieces);
             final double theta = this.getBestAngleToMove(piecePair, d.position, playerPieces, opponentPieces);
             final Pair<Integer, Point> move = this.getPositionToMove(piecePair, playerPieces, opponentPieces, theta);
             if (getDistance(d.position, move.getValue()) > getDistance(d.position, piecePair.getValue())) {
@@ -278,7 +289,7 @@ public class Player implements flip.sim.Player {
             for (Point wallPoint : wallPositions){
                 final Integer closestToHole = getCloser(wallPoint, cPieces);
                 Point closestPiecePoint = pieces.get(closestToHole);
-                double distance = euclideanDistance(wallPoint, closestPiecePoint);
+                double distance = getDistance(wallPoint, closestPiecePoint);
                 if (distance < shortestDistance){
                     shortestDistance = distance;
                     wallPointToFill = wallPoint;
@@ -293,13 +304,6 @@ public class Player implements flip.sim.Player {
             wallFormationPieces.add(closest);
         }
     }
-
-    protected double euclideanDistance(Point p1, Point p2){
-        double distance = Math.sqrt((p1.y - p2.y)*(p1.y-p2.y) + (p1.x-p2.x)*(p1.x-p2.x));
-        return distance;
-    }
-
-
 
     //first need to create a list of wall positions
     protected ArrayList<Point> getWallPositions(){
@@ -354,7 +358,7 @@ public class Player implements flip.sim.Player {
             dBoard.recordOpponentPieces(opponentPieces);
             Double crowdedX = dBoard.getCrowdedColumn(-22, 23);
             if (crowdedX != null) {
-                System.out.println("***Crowded " + crowdedX);
+                //System.out.println("***Crowded " + crowdedX);
                 Point p = playerPieces.get(runnerPiece);
                 final double cY = dBoard.findBestHole(crowdedX, p.y, p.x);
                 final Point blockPoint = new Point(crowdedX, cY);
