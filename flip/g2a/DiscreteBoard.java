@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  *
@@ -54,6 +56,10 @@ public class DiscreteBoard {
     }
 
     public Pair<Integer, List<Point>> findClosestPiece(Point targetPosition) {
+        return findAPath(targetPosition, (n) -> n != null);
+    }
+    
+    public Pair<Integer, List<Point>> findAPath(Point targetPosition, Predicate<Integer> criteria) {
         final Pair<Integer, Integer> target = getDiscreteBoardCoords(targetPosition);
         final Queue<Pair> q = new LinkedList<>();
         q.add(target);
@@ -79,7 +85,7 @@ public class DiscreteBoard {
             int xCoord = p.getValue();
 
             final Integer boardValue = this.board[yCoord][xCoord];
-            if (boardValue != null && target != p) {
+            if (criteria.test(boardValue) && target != p) {
                 int yPath = yCoord;
                 int xPath = xCoord;
 
@@ -99,7 +105,7 @@ public class DiscreteBoard {
             } else {
                 //Pair<Integer, Integer> up = new Pair<>(yCoord - 1, xCoord);
                 int y, x;
-                
+
                 y = yCoord;
                 x = xCoord - 1;
                 if (this.isFree(x, y, visited)) {
@@ -107,7 +113,7 @@ public class DiscreteBoard {
                     q.add(new Pair<>(y, x));
                     directions[y][x] = RIGHT;
                 }
-                
+
                 y = yCoord - 1;
                 x = xCoord;
                 if (this.isFree(x, y, visited)) {
@@ -122,6 +128,14 @@ public class DiscreteBoard {
                     visited[y][x] = true;
                     q.add(new Pair<>(y, x));
                     directions[y][x] = UP;
+                }
+
+                y = yCoord;
+                x = xCoord + 1;
+                if (this.isFree(x, y, visited)) {
+                    visited[y][x] = true;
+                    q.add(new Pair<>(y, x));
+                    directions[y][x] = LEFT;
                 }
             }
         }
@@ -138,30 +152,28 @@ public class DiscreteBoard {
     }
 
     public Pair<Integer, Integer> getDiscreteBoardCoords(Point p) {
-        return new Pair((int) ((p.y + height / 2) / gridResolution), (int) ((p.x + width / 2) / gridResolution));
+        return new Pair((int) Math.round((p.y + height / 2) / gridResolution), (int) Math.round((p.x + width / 2) / gridResolution));
     }
 
-    public void recordOpponentPieces(Collection<Point> opponentPieces) {
-        for (Point p : opponentPieces) {
-            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
-            System.out.println("DC " + discreteCoords);
+    public void recordOpponentPieces(Map<Integer, Point> opponentPieces) {
+        opponentPieces.entrySet().forEach((pp) -> {
+            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(pp.getValue());
+            //System.out.println("***" + pp.getValue() + " -> " + discreteCoords);
             board[discreteCoords.getKey()][discreteCoords.getValue()] = -1;
-        }
+        });
     }
 
     public void recordPlayerPieces(Collection<Point> playerPieces) {
-        for (Point p : playerPieces) {
-            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
+        playerPieces.stream().map((p) -> this.getDiscreteBoardCoords(p)).forEachOrdered((discreteCoords) -> {
             board[discreteCoords.getKey()][discreteCoords.getValue()] = 1;
-        }
+        });
     }
 
-    public void recordPlayerPiecesIdx(Collection<Point> playerPieces) {
-        for (int i = 0; i < playerPieces.size(); i++) {
-            Point p = (Point) playerPieces.toArray()[i];
-            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(p);
-            board[discreteCoords.getKey()][discreteCoords.getValue()] = i;
-        }
+    public void recordPlayerPiecesIdx(Map<Integer, Point> playerPieces) {
+        playerPieces.entrySet().forEach((pp) -> {
+            Pair<Integer, Integer> discreteCoords = this.getDiscreteBoardCoords(pp.getValue());
+            board[discreteCoords.getKey()][discreteCoords.getValue()] = pp.getKey();
+        });
     }
 
     public Double getCrowdedColumn() {
@@ -169,8 +181,8 @@ public class DiscreteBoard {
     }
 
     public Double getCrowdedColumn(double minX, double maxX) {
-        final int minXR = (int) ((minX + width / 2) / gridResolution);
-        final int maxXR = (int) ((maxX + width / 2) / gridResolution);
+        final int minXR = (int) Math.round((minX + width / 2) / gridResolution);
+        final int maxXR = (int) Math.round((maxX + width / 2) / gridResolution);
         for (int j = minXR; j < maxXR; j++) {
             int count = 0;
             for (int i = 0; i < board.length; i++) {
@@ -178,16 +190,17 @@ public class DiscreteBoard {
                     count++;
                 }
             }
-            if ((double) count / board.length > 0.15) {
+            //System.out.println("***Row " + j + ": " + count);
+            if (((double) count) / board.length > 0.15) {
                 return (double) j * gridResolution - width / 2;
             }
         }
         return null;
     }
-    
+
     public boolean isThereAFullColumn(double minX, double maxX) {
-        final int minXR = (int) ((minX + width / 2) / gridResolution);
-        final int maxXR = (int) ((maxX + width / 2) / gridResolution);
+        final int minXR = (int) Math.round((minX + width / 2) / gridResolution);
+        final int maxXR = (int) Math.round((maxX + width / 2) / gridResolution);
         for (int j = minXR; j < maxXR; j++) {
             int count = 0;
             for (int i = 0; i < board.length; i++) {
@@ -228,22 +241,22 @@ public class DiscreteBoard {
     public int findClosestSumDistances(int lowY, int highY, int x) {
         boolean[][] used = new boolean[board.length][board[0].length];
 
-        for(int i = 0; i < board.length; i++) {
-            for(int j = 0; j < board[0].length; j++) {
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[0].length; j++) {
                 used[i][j] = false;
             }
         }
 
         int totalDistance = 0;
-        for(int wallY = lowY; wallY < highY; wallY++) {
+        for (int wallY = lowY; wallY < highY; wallY++) {
             int closestX = -1;
             int closestY = -1;
             int closestDistance = 999;
-            for(int row = 0; row < board.length; row++) {
+            for (int row = 0; row < board.length; row++) {
                 for (int col = x + 1; col < board[0].length; col++) {
-                    if(board[row][col] != null && board[row][col] == -1 && !used[row][col]) {
+                    if (board[row][col] != null && board[row][col] == -1 && !used[row][col]) {
                         int distance = Math.abs(wallY - row) + Math.abs(x - col);
-                        if(distance <= closestDistance) {
+                        if (distance <= closestDistance) {
                             closestX = col;
                             closestY = row;
                             closestDistance = distance;
@@ -259,9 +272,9 @@ public class DiscreteBoard {
     }
 
     public double findBestHole(double x, double runnerY, double runnerX) {
-        int runnerYDiscrete = (int) ((runnerY + height / 2) / gridResolution);
-        int runnerXDiscrete = (int) ((runnerX + width / 2) / gridResolution);
-        final int wallCol = (int) ((x + width / 2) / gridResolution);
+        int runnerYDiscrete = (int) Math.round((runnerY + height / 2) / gridResolution);
+        int runnerXDiscrete = (int) Math.round((runnerX + width / 2) / gridResolution);
+        final int wallCol = (int) Math.round((x + width / 2) / gridResolution);
 
         double bestY = -1.0;
         int bestDeltaAdvantage = -9999;
@@ -269,12 +282,12 @@ public class DiscreteBoard {
         int currTop = -1;
         for (int i = 0; i < board.length; i++) {
             if (board[i][wallCol] != null) {
-                if(currTop > -1) {
+                if (currTop > -1) {
                     int opponentDistances = findClosestSumDistances(currTop, i, wallCol);
                     int wallMid = (int) ((i - 1 + currTop) / 2.0);
                     int myDistance = Math.abs(runnerXDiscrete - wallCol) + Math.abs(runnerYDiscrete - wallMid);
                     int delta = opponentDistances - myDistance;
-                    if(delta >= bestDeltaAdvantage) {
+                    if (delta >= bestDeltaAdvantage) {
                         bestY = (double) wallMid * gridResolution - 20.;
                         bestDeltaAdvantage = delta;
                     }
@@ -285,12 +298,12 @@ public class DiscreteBoard {
             }
         }
 
-        if(currTop > -1) {
+        if (currTop > -1) {
             int opponentDistances = findClosestSumDistances(currTop, board.length, wallCol);
             int wallMid = (int) ((board.length - 1 + currTop) / 2.0);
             int myDistance = Math.abs(runnerXDiscrete - wallCol) + Math.abs(runnerYDiscrete - wallMid);
             int delta = opponentDistances - myDistance;
-            if(delta >= bestDeltaAdvantage) {
+            if (delta >= bestDeltaAdvantage) {
                 bestY = (double) wallMid * gridResolution - 20.;
             }
         }
