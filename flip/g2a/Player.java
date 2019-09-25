@@ -284,27 +284,22 @@ public class Player implements flip.sim.Player {
         }
     }
 
+    protected double euclideanDistance(Point p1, Point p2){
+        double distance = Math.sqrt((p1.y - p2.y)*(p1.y-p2.y) + (p1.x-p2.x)*(p1.x-p2.x));
+        return distance;
+    }
 
 
 
-
-    //first need to create a list of wall positions
-    protected ArrayList<Point> getWallPositions(){
-        ArrayList<Point> wallPositions = new ArrayList<Point>();
-        final double wallOffset = 40.0 / 11;
-        for (int i = 0; i < 11; i++){
-            Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
+    //first need to create a list of wall positions
+    protected ArrayList<Point> getWallPositions(){
+        ArrayList<Point> wallPositions = new ArrayList<Point>();
+        final double wallOffset = 40.0 / 11;
+        for (int i = 0; i < 11; i++){
+            Point wallPoint = new Point(WALL_POSITION, wallOffset * (i + 0.5) - 20);
             wallPositions.add(wallPoint);
         }
-        return wallPositions;
-    }
-
-
-
-
-    protected double euclideanDistance(Point p1, Point p2){
-        double distance = Math.sqrt((p1.y - p2.y)*(p1.y-p2.y) + (p1.x-p2.x)*(p1.x-p2.x));
-        return distance;
+        return wallPositions;
     }
 
 
